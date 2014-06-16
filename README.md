@@ -4,8 +4,16 @@ cloudsearch4s is a Scala client of AWS CloudSearch.
 
 ## How to use
 
+TODO: sbt dependency configuration
 
-## Case class
+```scala
+import jp.co.bizreach.cloudsearch4s.CloudSearch
+
+val registerUrl = "http://xxxx"
+val searchUrl   = "http://xxxx"
+
+val cloudsearch = CloudSearch(registerUrl, searchUrl)
+```
 
 cloudsearch4s can handle documents as `Map[String, Any]` or case class. If you want to handle documents as case class, you have to define a case class which is mapped to the index in the CloudSearch at first.
 
@@ -26,17 +34,6 @@ class Job(
   val salary: Int,
   ...
 )
-```
-
-## API Usage
-
-```scala
-import jp.co.bizreach.cloudsearch4s.CloudSearch
-
-val registerUrl = "http://xxxx"
-val searchUrl   = "http://xxxx"
-
-val cloudsearch = CloudSearch(registerUrl, searchUrl)
 ```
 
 ### Register
