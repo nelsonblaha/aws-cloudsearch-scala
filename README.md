@@ -1,6 +1,6 @@
 cloudsearch4s
 ========
-cloudsearch4s is a Scala client of AWS CloudSearch.
+This is a Scala client of AWS CloudSearch.
 
 ## How to use
 
