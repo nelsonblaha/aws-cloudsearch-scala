@@ -25,7 +25,7 @@ case class Job(
 )
 ```
 
-If property count is over 22, you have to define as a normal class not a case class. This limitation will be removed in Scala 2.11.
+If number of properties is over 22, you have to define it as a normal class, not a case class. This limitation will be removed in Scala 2.11.
 
 ```scala
 class Job(
