@@ -16,23 +16,13 @@ val cloudsearch = CloudSearch(registerUrl, searchUrl)
 ```
 
 cloudsearch4s can handle documents as `Map[String, Any]` or case class. If you want to handle documents as case class, you have to define a case class which is mapped to the index in the CloudSearch at first.
+If you use case class, camel case property names are mapped to lowercase with underscore.
 
 ```scala
 case class Job(
-  jobTitle: String,
-  jobContent: String,
-  salary: Int
-)
-```
-
-If number of properties is over 22, you have to define it as a normal class, not a case class. This limitation will be removed in Scala 2.11.
-
-```scala
-class Job(
-  val jobTitle: String,
-  val jobContent: String,
-  val salary: Int,
-  ...
+  jobTitle: String,   // mapped to job_title
+  jobContent: String, // mapped to job_content
+  salary: Int         // mapped to salary
 )
 ```
 
