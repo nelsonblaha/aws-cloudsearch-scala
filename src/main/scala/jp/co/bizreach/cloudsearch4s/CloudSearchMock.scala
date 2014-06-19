@@ -26,6 +26,6 @@ class CloudSearchMock(params: Map[String, CloudSearchResult[_]] = Map.empty) ext
    *
    * @return List of tuple which contains HTTP method (GET or POST) and parameter (query string or JSON string)
    */
-  def executedActions: List[(String, String)] = actions.toList
+  def executedRequests: List[(String, String)] = actions.toList
 
 }
