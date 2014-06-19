@@ -186,6 +186,26 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
     EntityUtils.toString(response.getEntity())
   }
 
+  protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): CloudSearchResult[T] = {
+    val response = JsonUtils.deserialize(executeGetRequest(url, queryString), classOf[Map[String, Any]])
+
+    CloudSearchResult(
+      total = response("hits").asInstanceOf[Map[String, Any]]("found").asInstanceOf[Int],
+      hits = response("hits").asInstanceOf[Map[String, Any]]("hit").asInstanceOf[Seq[Map[String, AnyRef]]].map { doc =>
+        CloudSearchDocument(
+          id        = doc("id").asInstanceOf[String],
+          fields    = JsonUtils.deserialize(JsonUtils.serialize(doc("fields")), clazz),
+          highlight = doc.get("highlights").map(_.asInstanceOf[Map[String, String]]).getOrElse(Map.empty)
+        )
+      },
+      facets = response.get("facets").map(_.asInstanceOf[Map[String, Map[String, AnyRef]]].map { case (field, map) =>
+        field -> map("buckets").asInstanceOf[Seq[Map[String, Any]]].map { bucket =>
+          Facet(bucket("value").asInstanceOf[String], bucket("count").asInstanceOf[Int])
+        }
+      }).getOrElse(Map.empty)
+    )
+  }
+
   protected def executeGetRequest(url: String, queryString: String): String = {
     val get = new HttpGet(url + "?" + queryString)
     val client = HttpClientBuilder.create().build()
