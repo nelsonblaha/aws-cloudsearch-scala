@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 import java.net.URLEncoder
-import java.util.UUID
 import org.apache.lucene.search.Query
 import CloudSearch._
 
@@ -37,7 +36,7 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
     val mapList = fieldsList.map { case fields =>
       Map(
         "type"   -> "add",
-        "id"     -> UUID.randomUUID.toString,
+        "id"     -> new com.eaio.uuid.UUID().toString,
         "fields" -> fields
       )
     }
