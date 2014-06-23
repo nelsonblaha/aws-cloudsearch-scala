@@ -177,12 +177,16 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
   protected def executePostRequest(url: String, json: String): String  = {
     val post = new HttpPost(url)
     val client = HttpClientBuilder.create().build()
-    val entry = new StringEntity(json, StandardCharsets.UTF_8)
-    entry.setContentType("application/json")
-    post.setEntity(entry)
+    try {
+      val entry = new StringEntity(json, StandardCharsets.UTF_8)
+      entry.setContentType("application/json")
+      post.setEntity(entry)
 
-    val response = client.execute(post)
-    EntityUtils.toString(response.getEntity())
+      val response = client.execute(post)
+      EntityUtils.toString(response.getEntity())
+    } finally {
+      client.close()
+    }
   }
 
   protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): CloudSearchResult[T] = {
@@ -208,9 +212,12 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
   protected def executeGetRequest(url: String, queryString: String): String = {
     val get = new HttpGet(url + "?" + queryString)
     val client = HttpClientBuilder.create().build()
-
-    val response = client.execute(get)
-    EntityUtils.toString(response.getEntity())
+    try {
+      val response = client.execute(get)
+      EntityUtils.toString(response.getEntity())
+    } finally {
+      client.close()
+    }
   }
 
 }
