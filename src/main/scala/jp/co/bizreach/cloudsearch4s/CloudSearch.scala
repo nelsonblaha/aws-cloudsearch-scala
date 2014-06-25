@@ -27,6 +27,7 @@ trait CloudSearch {
 }
 
 class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearch {
+  import CloudSearchInternalUtils._
 
   def registerIndexByMap(fields: Map[String, Any]): String = {
     registerIndicesByMap(List(fields))(0)
@@ -107,6 +108,8 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
     sb.append("&q.parser=lucene")
     if(fields.nonEmpty){
       sb.append("&return=").encode(fields.mkString(","))
+    } else if(!clazz.isAssignableFrom(classOf[Map[_, _]])){
+      sb.append("&return=").encode(getPropertyNames(clazz).mkString(","))
     }
     // facet
     facets.foreach { facet =>
@@ -166,13 +169,6 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
       }).getOrElse(Map.empty)
     )
   }
-
-  protected implicit class RichStringBuilder(sb: StringBuilder){
-    def encode(value: String): StringBuilder = sb.append(u(value))
-  }
-
-  protected def q(value: String): String = "\"" + value + "\""
-  protected def u(value: String): String = URLEncoder.encode(value, "UTF-8")
 
   protected def executePostRequest(url: String, json: String): String  = {
     val post = new HttpPost(url)
