@@ -4,7 +4,7 @@ This is a Scala client of AWS CloudSearch.
 
 ## How to use
 
-TODO: sbt dependency configuration
+TODO: sbt dependency configuration (not deployed yet)
 
 ```scala
 import jp.co.bizreach.cloudsearch4s.CloudSearch
