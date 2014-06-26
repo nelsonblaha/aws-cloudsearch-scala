@@ -8,11 +8,12 @@ TODO: sbt dependency configuration
 
 ```scala
 import jp.co.bizreach.cloudsearch4s.CloudSearch
+import jp.co.bizreach.cloudsearch4s.CloudSearch._
 
-val registerUrl = "http://xxxx"
-val searchUrl   = "http://xxxx"
-
-val cloudsearch = CloudSearch(registerUrl, searchUrl)
+val cloudsearch = CloudSearch(CloudSearchSettings(
+  registerUrl = "http://xxxx",
+  searchUrl   = "http://xxxx"
+))
 ```
 
 cloudsearch4s can handle documents as `Map[String, Any]` or case class. If you want to handle documents as case class, you have to define a case class which is mapped to the index in the CloudSearch at first.

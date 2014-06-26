@@ -8,32 +8,37 @@ import org.apache.http.util.EntityUtils
 import java.net.URLEncoder
 import org.apache.lucene.search.Query
 import CloudSearch._
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.HttpHost
 
 trait CloudSearch {
 
-  def registerIndexByMap(fields: Map[String, Any]): String
-  def registerIndicesByMap(fieldsList: Seq[Map[String, Any]]): Seq[String]
-  def registerIndex(fields: AnyRef): String
-  def registerIndices(fieldsList: Seq[AnyRef]): Seq[String]
-  def updateIndexByMap(id: String, fields: Map[String, Any]): Unit
-  def updateIndicesByMap(idAndFieldsList: Seq[(String, Map[String, Any])]): Unit
-  def updateIndex(id: String, fields: AnyRef): Unit
-  def updateIndices(idAndFieldsList: Seq[(String, AnyRef)]): Unit
-  def removeIndex(id: String): Unit
-  def removeIndices(idList: Seq[String]): Unit
+  def registerIndexByMap(fields: Map[String, Any]): Either[CloudSearchError, String]
+  def registerIndicesByMap(fieldsList: Seq[Map[String, Any]]): Either[CloudSearchError, Seq[String]]
+  def registerIndex(fields: AnyRef): Either[CloudSearchError, String]
+  def registerIndices(fieldsList: Seq[AnyRef]): Either[CloudSearchError, Seq[String]]
+  def updateIndexByMap(id: String, fields: Map[String, Any]): Either[CloudSearchError, String]
+  def updateIndicesByMap(idAndFieldsList: Seq[(String, Map[String, Any])]): Either[CloudSearchError, Seq[String]]
+  def updateIndex(id: String, fields: AnyRef): Either[CloudSearchError, String]
+  def updateIndices(idAndFieldsList: Seq[(String, AnyRef)]): Either[CloudSearchError, Seq[String]]
+  def removeIndex(id: String): Either[CloudSearchError, String]
+  def removeIndices(idList: Seq[String]): Either[CloudSearchError, Seq[String]]
   def search[T](clazz: Class[T], query: Query, fields: Seq[String] = Nil, facets: Seq[FacetParam] = Nil, highlights: Seq[HighlightParam] = Nil,
                 sorts: Seq[SortParam] = Nil, start: Int = 0, size: Int = 0): CloudSearchResult[T]
 
 }
 
-class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearch {
+class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
   import CloudSearchInternalUtils._
 
-  def registerIndexByMap(fields: Map[String, Any]): String = {
-    registerIndicesByMap(List(fields))(0)
+  def registerIndexByMap(fields: Map[String, Any]): Either[CloudSearchError, String] = {
+    registerIndicesByMap(List(fields)) match {
+      case Right(x) => Right(x(0))
+      case Left(x)  => Left(x)
+    }
   }
 
-  def registerIndicesByMap(fieldsList: Seq[Map[String, Any]]): Seq[String] = {
+  def registerIndicesByMap(fieldsList: Seq[Map[String, Any]]): Either[CloudSearchError, Seq[String]] = {
     val mapList = fieldsList.map { case fields =>
       Map(
         "type"   -> "add",
@@ -43,26 +48,33 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
     }
 
     val json = JsonUtils.serialize(mapList)
-    executePostRequest(registerUrl, json)
-
-    mapList.map(x => x("id").asInstanceOf[String])
+    executePostRequest(settings.registerUrl, json) match {
+      case None    => Right(mapList.map(x => x("id").asInstanceOf[String]))
+      case Some(x) => Left(x)
+    }
   }
 
-  def registerIndex(fields: AnyRef): String = {
-    registerIndices(Seq(fields))(0)
+  def registerIndex(fields: AnyRef): Either[CloudSearchError, String] = {
+    registerIndices(Seq(fields)) match {
+      case Right(x) => Right(x(0))
+      case Left(x)  => Left(x)
+    }
   }
 
-  def registerIndices(fieldsList: Seq[AnyRef]): Seq[String] = {
+  def registerIndices(fieldsList: Seq[AnyRef]): Either[CloudSearchError, Seq[String]] = {
     registerIndicesByMap(fieldsList.map { fields =>
       JsonUtils.deserialize(JsonUtils.serialize(fields), classOf[Map[String, Any]])
     })
   }
 
-  def updateIndexByMap(id: String, fields: Map[String, Any]): Unit = {
-    updateIndicesByMap(Seq((id, fields)))
+  def updateIndexByMap(id: String, fields: Map[String, Any]): Either[CloudSearchError, String] = {
+    updateIndicesByMap(Seq((id, fields))) match {
+      case Right(x) => Right(x(0))
+      case Left(x)  => Left(x)
+    }
   }
 
-  def updateIndicesByMap(idAndFieldsList: Seq[(String, Map[String, Any])]): Unit = {
+  def updateIndicesByMap(idAndFieldsList: Seq[(String, Map[String, Any])]): Either[CloudSearchError, Seq[String]] = {
     val json = JsonUtils.serialize(
       idAndFieldsList.map { case (id, fields) =>
         Map(
@@ -72,24 +84,33 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
         )
       }
     )
-    executePostRequest(registerUrl, json)
+    executePostRequest(settings.registerUrl, json) match {
+      case None    => Right(idAndFieldsList.map(_._1))
+      case Some(x) => Left(x)
+    }
   }
 
-  def updateIndex(id: String, fields: AnyRef): Unit = {
-    updateIndices(Seq((id, fields)))
+  def updateIndex(id: String, fields: AnyRef): Either[CloudSearchError, String] = {
+    updateIndices(Seq((id, fields))) match {
+      case Right(x) => Right(x(0))
+      case Left(x)  => Left(x)
+    }
   }
 
-  def updateIndices(idAndFieldsList: Seq[(String, AnyRef)]): Unit = {
+  def updateIndices(idAndFieldsList: Seq[(String, AnyRef)]): Either[CloudSearchError, Seq[String]] = {
     updateIndicesByMap(idAndFieldsList.map { case (id, fields) =>
       (id, JsonUtils.deserialize(JsonUtils.serialize(fields), classOf[Map[String, Any]]))
     })
   }
 
-  def removeIndex(id: String): Unit = {
-    removeIndices(Seq(id))
+  def removeIndex(id: String): Either[CloudSearchError, String] = {
+    removeIndices(Seq(id)) match {
+      case Right(x) => Right(x(0))
+      case Left(x)  => Left(x)
+    }
   }
 
-  def removeIndices(idList: Seq[String]): Unit = {
+  def removeIndices(idList: Seq[String]): Either[CloudSearchError, Seq[String]] = {
     val json = JsonUtils.serialize(
       idList.map { id =>
         Map(
@@ -98,7 +119,10 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
         )
       }
     )
-    executePostRequest(registerUrl, json)
+    executePostRequest(settings.registerUrl, json) match {
+      case None    => Right(idList)
+      case Some(x) => Left(x)
+    }
   }
 
   def search[T](clazz: Class[T], query: Query, fields: Seq[String] = Nil, facets: Seq[FacetParam] = Nil, highlights: Seq[HighlightParam] = Nil,
@@ -151,7 +175,7 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
       sb.append("&size=").append(size)
     }
 
-    val response = JsonUtils.deserialize(executeGetRequest(searchUrl, sb.toString), classOf[Map[String, Any]])
+    val response = JsonUtils.deserialize(executeGetRequest(settings.searchUrl, sb.toString), classOf[Map[String, Any]])
 
     CloudSearchResult(
       total = response("hits").asInstanceOf[Map[String, Any]]("found").asInstanceOf[Int],
@@ -170,16 +194,31 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
     )
   }
 
-  protected def executePostRequest(url: String, json: String): String  = {
-    val post = new HttpPost(url)
-    val client = HttpClientBuilder.create().build()
+  protected def executePostRequest(url: String, json: String): Option[CloudSearchError]  = {
+    val request = new HttpPost(url)
+    val client  = HttpClientBuilder.create().build()
+
+    settings.proxy.foreach { x =>
+      val config = RequestConfig.custom().setProxy(new HttpHost(x.host, x.port)).build()
+      request.setConfig(config)
+    }
+
     try {
       val entry = new StringEntity(json, StandardCharsets.UTF_8)
       entry.setContentType("application/json")
-      post.setEntity(entry)
+      request.setEntity(entry)
 
-      val response = client.execute(post)
-      EntityUtils.toString(response.getEntity())
+      val response = client.execute(request)
+
+      val resultJson = EntityUtils.toString(response.getEntity())
+      val resultMap = JsonUtils.deserialize(resultJson, classOf[Map[String, AnyRef]])
+
+      resultMap("status") match {
+        case "success" => None
+        case _ => Some(CloudSearchError(
+          messages = resultMap("errors").asInstanceOf[List[Map[String, String]]].map(error => error("message"))
+        ))
+      }
     } finally {
       client.close()
     }
@@ -206,10 +245,16 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
   }
 
   protected def executeGetRequest(url: String, queryString: String): String = {
-    val get = new HttpGet(url + "?" + queryString)
-    val client = HttpClientBuilder.create().build()
+    val request = new HttpGet(url + "?" + queryString)
+    val client  = HttpClientBuilder.create().build()
+
+    settings.proxy.foreach { x =>
+      val config = RequestConfig.custom().setProxy(new HttpHost(x.host, x.port)).build()
+      request.setConfig(config)
+    }
+
     try {
-      val response = client.execute(get)
+      val response = client.execute(request)
       EntityUtils.toString(response.getEntity())
     } finally {
       client.close()
@@ -220,7 +265,7 @@ class CloudSearchImpl(registerUrl: String, searchUrl: String) extends CloudSearc
 
 object CloudSearch {
 
-  def apply(registerUrl: String, searchUrl: String): CloudSearch = new CloudSearchImpl(registerUrl, searchUrl)
+  def apply(settings: CloudSearchSettings): CloudSearch = new CloudSearchImpl(settings)
 
   case class FacetParam(field: String, sort: String = "", buckets: Seq[String] = Nil, size: Int = 0)
   case class HighlightParam(field: String, format: String = "", maxPhrases: Int = 0, preTag: String = "", postTag: String = "")
@@ -232,5 +277,9 @@ object CloudSearch {
   case class CloudSearchResult[T](total: Int, hits: Seq[CloudSearchDocument[T]], facets: Map[String, Seq[Facet]])
   case class CloudSearchDocument[T](id: String, fields: T, highlight: Map[String, String])
   case class Facet(value: String, count: Int)
+
+  case class CloudSearchSettings(searchUrl: String, registerUrl: String, proxy: Option[Proxy] = None)
+  case class Proxy(host: String, port: Int)
+  case class CloudSearchError(messages: Seq[String])
 
 }

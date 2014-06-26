@@ -7,13 +7,13 @@ import CloudSearch._
  *
  * @param params Excepted query and its result
  */
-class CloudSearchMock(params: Map[String, CloudSearchResult[_]] = Map.empty) extends CloudSearchImpl("", "") {
+class CloudSearchMock(params: Map[String, CloudSearchResult[_]] = Map.empty) extends CloudSearchImpl(CloudSearchSettings("", "")) {
 
   private val actions = scala.collection.mutable.ListBuffer[(String, String)]()
 
-  override protected def executePostRequest(url: String, json: String): String  = {
+  override protected def executePostRequest(url: String, json: String): Option[CloudSearchError]  = {
     actions += ("POST" -> json)
-    ""
+    None
   }
 
   override protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): CloudSearchResult[T] = {
