@@ -16,9 +16,9 @@ class CloudSearchMock(params: Map[String, CloudSearchResult[_]] = Map.empty) ext
     None
   }
 
-  override protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): CloudSearchResult[T] = {
+  override protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
     actions += ("GET" -> queryString)
-    params(queryString).asInstanceOf[CloudSearchResult[T]]
+    Right(params(queryString).asInstanceOf[CloudSearchResult[T]])
   }
 
   /**

@@ -4,7 +4,7 @@ This is a Scala client of AWS CloudSearch.
 
 ## How to use
 
-TODO: sbt dependency configuration
+TODO: sbt dependency configuration (not deployed yet)
 
 ```scala
 import jp.co.bizreach.cloudsearch4s.CloudSearch
@@ -90,8 +90,6 @@ cloudsearch.removeIndices(Seq(
 val result: CloudSearchResult[Job] = cloudsearch.search(classOf[Job],
   // Query which is assembled using Lucene's query builder API
   new TermQuery(new Term("index_type", "crawl"))
-  // Retrieve fields (Optional)
-  fields = Seq("job_title", "job_content", "company_name"),
   // Highlight settings (Optional)
   highlights = Seq(HighlightParam("job_title")),
   // Facet search settings (Optional)

@@ -24,7 +24,7 @@ trait CloudSearch {
   def removeIndex(id: String): Either[CloudSearchError, String]
   def removeIndices(idList: Seq[String]): Either[CloudSearchError, Seq[String]]
   def search[T](clazz: Class[T], query: Query, fields: Seq[String] = Nil, facets: Seq[FacetParam] = Nil, highlights: Seq[HighlightParam] = Nil,
-                sorts: Seq[SortParam] = Nil, start: Int = 0, size: Int = 0): CloudSearchResult[T]
+                sorts: Seq[SortParam] = Nil, start: Int = 0, size: Int = 0): Either[CloudSearchError, CloudSearchResult[T]]
 
 }
 
@@ -126,7 +126,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
   }
 
   def search[T](clazz: Class[T], query: Query, fields: Seq[String] = Nil, facets: Seq[FacetParam] = Nil, highlights: Seq[HighlightParam] = Nil,
-                sorts: Seq[SortParam] = Nil, start: Int = 0, size: Int = 0): CloudSearchResult[T] = {
+                sorts: Seq[SortParam] = Nil, start: Int = 0, size: Int = 0): Either[CloudSearchError, CloudSearchResult[T]] = {
     val sb = new StringBuilder()
     sb.append("q=").append(u(query.toString))
     sb.append("&q.parser=lucene")
@@ -175,23 +175,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       sb.append("&size=").append(size)
     }
 
-    val response = JsonUtils.deserialize(executeGetRequest(settings.searchUrl, sb.toString), classOf[Map[String, Any]])
-
-    CloudSearchResult(
-      total = response("hits").asInstanceOf[Map[String, Any]]("found").asInstanceOf[Int],
-      hits = response("hits").asInstanceOf[Map[String, Any]]("hit").asInstanceOf[Seq[Map[String, AnyRef]]].map { doc =>
-        CloudSearchDocument(
-          id        = doc("id").asInstanceOf[String],
-          fields    = JsonUtils.deserialize(JsonUtils.serialize(doc("fields")), clazz),
-          highlight = doc.get("highlights").map(_.asInstanceOf[Map[String, String]]).getOrElse(Map.empty)
-        )
-      },
-      facets = response.get("facets").map(_.asInstanceOf[Map[String, Map[String, AnyRef]]].map { case (field, map) =>
-        field -> map("buckets").asInstanceOf[Seq[Map[String, Any]]].map { bucket =>
-          Facet(bucket("value").asInstanceOf[String], bucket("count").asInstanceOf[Int])
-        }
-      }).getOrElse(Map.empty)
-    )
+    searchInternal(settings.searchUrl, sb.toString, clazz)
   }
 
   protected def executePostRequest(url: String, json: String): Option[CloudSearchError]  = {
@@ -224,24 +208,33 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
     }
   }
 
-  protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): CloudSearchResult[T] = {
+  protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
     val response = JsonUtils.deserialize(executeGetRequest(url, queryString), classOf[Map[String, Any]])
 
-    CloudSearchResult(
-      total = response("hits").asInstanceOf[Map[String, Any]]("found").asInstanceOf[Int],
-      hits = response("hits").asInstanceOf[Map[String, Any]]("hit").asInstanceOf[Seq[Map[String, AnyRef]]].map { doc =>
-        CloudSearchDocument(
-          id        = doc("id").asInstanceOf[String],
-          fields    = JsonUtils.deserialize(JsonUtils.serialize(doc("fields")), clazz),
-          highlight = doc.get("highlights").map(_.asInstanceOf[Map[String, String]]).getOrElse(Map.empty)
+    response.get("error") match {
+      case Some(_) => {
+        Left(CloudSearchError(messages = Seq(response("message").asInstanceOf[String])))
+      }
+      case None => {
+        val result = CloudSearchResult(
+          total = response("hits").asInstanceOf[Map[String, Any]]("found").asInstanceOf[Int],
+          hits = response("hits").asInstanceOf[Map[String, Any]]("hit").asInstanceOf[Seq[Map[String, AnyRef]]].map { doc =>
+            CloudSearchDocument(
+              id        = doc("id").asInstanceOf[String],
+              fields    = JsonUtils.deserialize(JsonUtils.serialize(doc("fields")), clazz),
+              highlight = doc.get("highlights").map(_.asInstanceOf[Map[String, String]]).getOrElse(Map.empty)
+            )
+          },
+          facets = response.get("facets").map(_.asInstanceOf[Map[String, Map[String, AnyRef]]].map { case (field, map) =>
+            field -> map("buckets").asInstanceOf[Seq[Map[String, Any]]].map { bucket =>
+              Facet(bucket("value").asInstanceOf[String], bucket("count").asInstanceOf[Int])
+            }
+          }).getOrElse(Map.empty)
         )
-      },
-      facets = response.get("facets").map(_.asInstanceOf[Map[String, Map[String, AnyRef]]].map { case (field, map) =>
-        field -> map("buckets").asInstanceOf[Seq[Map[String, Any]]].map { bucket =>
-          Facet(bucket("value").asInstanceOf[String], bucket("count").asInstanceOf[Int])
-        }
-      }).getOrElse(Map.empty)
-    )
+
+        Right(result)
+      }
+    }
   }
 
   protected def executeGetRequest(url: String, queryString: String): String = {
