@@ -5,11 +5,12 @@ import org.apache.http.client.methods.{HttpGet, HttpPost}
 import java.nio.charset.StandardCharsets
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
-import java.net.URLEncoder
+import java.net.{URLDecoder, URLEncoder}
 import org.apache.lucene.search.Query
 import CloudSearch._
 import org.apache.http.client.config.RequestConfig
 import org.apache.http.HttpHost
+import org.slf4j.LoggerFactory
 
 trait CloudSearch {
 
@@ -31,6 +32,8 @@ trait CloudSearch {
 class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
   import CloudSearchInternalUtils._
 
+  protected val logger = LoggerFactory.getLogger("jp.co.bizreach.cloudsearch4s.monitor")
+
   def registerIndexByMap(fields: Map[String, Any]): Either[CloudSearchError, String] = {
     registerIndicesByMap(List(fields)) match {
       case Right(x) => Right(x(0))
@@ -48,7 +51,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
     }
 
     val json = JsonUtils.serialize(mapList)
-    executePostRequest(settings.registerUrl, json) match {
+    executePostRequest(json) match {
       case None    => Right(mapList.map(x => x("id").asInstanceOf[String]))
       case Some(x) => Left(x)
     }
@@ -84,7 +87,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
         )
       }
     )
-    executePostRequest(settings.registerUrl, json) match {
+    executePostRequest(json) match {
       case None    => Right(idAndFieldsList.map(_._1))
       case Some(x) => Left(x)
     }
@@ -119,7 +122,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
         )
       }
     )
-    executePostRequest(settings.registerUrl, json) match {
+    executePostRequest(json) match {
       case None    => Right(idList)
       case Some(x) => Left(x)
     }
@@ -175,11 +178,11 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       sb.append("&size=").append(size)
     }
 
-    searchInternal(settings.searchUrl, sb.toString, clazz)
+    searchInternal(sb.toString, clazz)
   }
 
-  protected def executePostRequest(url: String, json: String): Option[CloudSearchError]  = {
-    val request = new HttpPost(url)
+  protected def executePostRequest(json: String): Option[CloudSearchError]  = {
+    val request = new HttpPost(settings.registerUrl)
     val client  = HttpClientBuilder.create().build()
 
     settings.proxy.foreach { x =>
@@ -192,25 +195,35 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       entry.setContentType("application/json")
       request.setEntity(entry)
 
+      val start    = System.currentTimeMillis
       val response = client.execute(request)
+      val end      = System.currentTimeMillis
 
       val resultJson = EntityUtils.toString(response.getEntity())
       val resultMap = JsonUtils.deserialize(resultJson, classOf[Map[String, AnyRef]])
 
-      resultMap("status") match {
+      val status  = resultMap("status").asInstanceOf[String]
+      val adds    = resultMap("adds").asInstanceOf[Int]
+      val deletes = resultMap("deletes").asInstanceOf[Int]
+      logger.info(s"action:cloudsearch.update\tstatus:${status}\ttime:${end - start}msec\tadds:${adds}\tdeletes:${deletes}")
+
+      status match {
         case "success" => None
         case _ => Some(CloudSearchError(
           messages = resultMap("errors").asInstanceOf[List[Map[String, String]]].map(error => error("message"))
         ))
       }
     } finally {
-      client.close()
+      request.releaseConnection()
     }
   }
 
-  protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
-    val response = JsonUtils.deserialize(executeGetRequest(url, queryString), classOf[Map[String, Any]])
+  protected def searchInternal[T](queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
+    val start = System.currentTimeMillis
+    val json  = executeGetRequest(queryString)
+    val end   = System.currentTimeMillis
 
+    val response = JsonUtils.deserialize(json, classOf[Map[String, Any]])
     response.get("error") match {
       case Some(_) => {
         Left(CloudSearchError(messages = Seq(response("message").asInstanceOf[String])))
@@ -232,13 +245,15 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
           }).getOrElse(Map.empty)
         )
 
+        logger.info(s"action:cloudsearch.search\ttime:${end - start}msec\ttotal:${result.total}\thits:${result.hits.size}\tquery:${URLDecoder.decode(queryString, "UTF-8")}")
+
         Right(result)
       }
     }
   }
 
-  protected def executeGetRequest(url: String, queryString: String): String = {
-    val request = new HttpGet(url + "?" + queryString)
+  protected def executeGetRequest(queryString: String): String = {
+    val request = new HttpGet(settings.searchUrl + "?" + queryString)
     val client  = HttpClientBuilder.create().build()
 
     settings.proxy.foreach { x =>
@@ -250,7 +265,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       val response = client.execute(request)
       EntityUtils.toString(response.getEntity())
     } finally {
-      client.close()
+      request.releaseConnection()
     }
   }
 
