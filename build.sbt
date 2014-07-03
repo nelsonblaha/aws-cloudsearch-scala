@@ -1,6 +1,6 @@
 name := "cloudsearch4s"
 
-organization := "jp.co.bizreach"
+organization := "com.codebreak"
 
 version := "0.0.1"
 

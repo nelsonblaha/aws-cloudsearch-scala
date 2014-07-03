@@ -1,4 +1,4 @@
-package jp.co.bizreach.cloudsearch4s
+package com.codebreak.cloudsearch4s
 
 import java.net.URLEncoder
 import com.fasterxml.jackson.databind.PropertyNamingStrategy

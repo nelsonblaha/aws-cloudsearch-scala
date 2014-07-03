@@ -1,9 +1,9 @@
-package jp.co.bizreach.cloudsearch4s
+package com.codebreak.cloudsearch4s
 
 import CloudSearch._
 
 /**
- * Mock for [[jp.co.bizreach.cloudsearch4s.CloudSearch]].
+ * Mock for [[com.codebreak.cloudsearch4s.CloudSearch]].
  *
  * @param params Excepted query and its result
  */
@@ -11,12 +11,12 @@ class CloudSearchMock(params: Map[String, CloudSearchResult[_]] = Map.empty) ext
 
   private val actions = scala.collection.mutable.ListBuffer[(String, String)]()
 
-  override protected def executePostRequest(url: String, json: String): Option[CloudSearchError]  = {
+  override protected def executePostRequest(json: String): Option[CloudSearchError]  = {
     actions += ("POST" -> json)
     None
   }
 
-  override protected def searchInternal[T](url: String, queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
+  override protected def searchInternal[T](queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
     actions += ("GET" -> queryString)
     Right(params(queryString).asInstanceOf[CloudSearchResult[T]])
   }

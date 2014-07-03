@@ -1,4 +1,4 @@
-package jp.co.bizreach.cloudsearch4s
+package com.codebreak.cloudsearch4s
 
 import com.fasterxml.jackson.databind._
 import com.fasterxml.jackson.module.scala.DefaultScalaModule

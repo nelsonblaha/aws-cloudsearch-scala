@@ -1,11 +1,11 @@
-package jp.co.bizreach.cloudsearch4s
+package com.codebreak.cloudsearch4s
 
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.client.methods.{HttpGet, HttpPost}
 import java.nio.charset.StandardCharsets
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
-import java.net.{URLDecoder, URLEncoder}
+import java.net.URLDecoder
 import org.apache.lucene.search.Query
 import CloudSearch._
 import org.apache.http.client.config.RequestConfig
