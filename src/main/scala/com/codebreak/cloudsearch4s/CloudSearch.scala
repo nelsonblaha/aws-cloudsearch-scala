@@ -32,7 +32,7 @@ trait CloudSearch {
 class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
   import CloudSearchInternalUtils._
 
-  protected val logger = LoggerFactory.getLogger("jp.co.bizreach.cloudsearch4s.monitor")
+  protected val logger = LoggerFactory.getLogger("com.codebreak.cloudsearch4s.monitor")
 
   def registerIndexByMap(fields: Map[String, Any]): Either[CloudSearchError, String] = {
     registerIndicesByMap(List(fields)) match {
@@ -51,7 +51,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
     }
 
     val json = JsonUtils.serialize(mapList)
-    executePostRequest(json) match {
+    executeUpdateRequest(json) match {
       case None    => Right(mapList.map(x => x("id").asInstanceOf[String]))
       case Some(x) => Left(x)
     }
@@ -87,7 +87,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
         )
       }
     )
-    executePostRequest(json) match {
+    executeUpdateRequest(json) match {
       case None    => Right(idAndFieldsList.map(_._1))
       case Some(x) => Left(x)
     }
@@ -122,7 +122,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
         )
       }
     )
-    executePostRequest(json) match {
+    executeUpdateRequest(json) match {
       case None    => Right(idList)
       case Some(x) => Left(x)
     }
@@ -178,10 +178,10 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       sb.append("&size=").append(size)
     }
 
-    searchInternal(sb.toString, clazz)
+    executeSearchRequest(sb.toString, clazz)
   }
 
-  protected def executePostRequest(json: String): Option[CloudSearchError]  = {
+  protected def executeUpdateRequest(json: String): Option[CloudSearchError]  = {
     val request = new HttpPost(settings.registerUrl)
     val client  = HttpClientBuilder.create().build()
 
@@ -218,42 +218,8 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
     }
   }
 
-  protected def searchInternal[T](queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
-    val start = System.currentTimeMillis
-    val json  = executeGetRequest(queryString)
-    val end   = System.currentTimeMillis
-
-    val response = JsonUtils.deserialize(json, classOf[Map[String, Any]])
-    response.get("error") match {
-      case Some(_) => {
-        Left(CloudSearchError(messages = Seq(response("message").asInstanceOf[String])))
-      }
-      case None => {
-        val result = CloudSearchResult(
-          total = response("hits").asInstanceOf[Map[String, Any]]("found").asInstanceOf[Int],
-          hits = response("hits").asInstanceOf[Map[String, Any]]("hit").asInstanceOf[Seq[Map[String, AnyRef]]].map { doc =>
-            CloudSearchDocument(
-              id        = doc("id").asInstanceOf[String],
-              fields    = JsonUtils.deserialize(JsonUtils.serialize(doc("fields")), clazz),
-              highlight = doc.get("highlights").map(_.asInstanceOf[Map[String, String]]).getOrElse(Map.empty)
-            )
-          },
-          facets = response.get("facets").map(_.asInstanceOf[Map[String, Map[String, AnyRef]]].map { case (field, map) =>
-            field -> map("buckets").asInstanceOf[Seq[Map[String, Any]]].map { bucket =>
-              Facet(bucket("value").asInstanceOf[String], bucket("count").asInstanceOf[Int])
-            }
-          }).getOrElse(Map.empty)
-        )
-
-        logger.info(s"action:cloudsearch.search\ttime:${end - start}msec\ttotal:${result.total}\thits:${result.hits.size}\tquery:${URLDecoder.decode(queryString, "UTF-8")}")
-
-        Right(result)
-      }
-    }
-  }
-
-  protected def executeGetRequest(queryString: String): String = {
-    val request = new HttpGet(settings.searchUrl + "?" + queryString)
+  protected def executeSearchRequest[T](queryString: String, clazz: Class[T]): Either[CloudSearchError, CloudSearchResult[T]] = {
+    val request = new HttpPost(settings.searchUrl)
     val client  = HttpClientBuilder.create().build()
 
     settings.proxy.foreach { x =>
@@ -261,9 +227,44 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       request.setConfig(config)
     }
 
+    val entry = new StringEntity(queryString, StandardCharsets.UTF_8)
+    entry.setContentType("application/x-www-form-urlencoded")
+    request.setEntity(entry)
+
     try {
+      val start    = System.currentTimeMillis
       val response = client.execute(request)
-      EntityUtils.toString(response.getEntity())
+      val end      = System.currentTimeMillis
+
+      val json = EntityUtils.toString(response.getEntity())
+      val responseMap = JsonUtils.deserialize(json, classOf[Map[String, Any]])
+
+      responseMap.get("error") match {
+        case Some(_) => {
+          Left(CloudSearchError(messages = Seq(responseMap("message").asInstanceOf[String])))
+        }
+        case None => {
+          val result = CloudSearchResult(
+            total = responseMap("hits").asInstanceOf[Map[String, Any]]("found").asInstanceOf[Int],
+            hits = responseMap("hits").asInstanceOf[Map[String, Any]]("hit").asInstanceOf[Seq[Map[String, AnyRef]]].map { doc =>
+              CloudSearchDocument(
+                id        = doc("id").asInstanceOf[String],
+                fields    = JsonUtils.deserialize(JsonUtils.serialize(doc("fields")), clazz),
+                highlight = doc.get("highlights").map(_.asInstanceOf[Map[String, String]]).getOrElse(Map.empty)
+              )
+            },
+            facets = responseMap.get("facets").map(_.asInstanceOf[Map[String, Map[String, AnyRef]]].map { case (field, map) =>
+              field -> map("buckets").asInstanceOf[Seq[Map[String, Any]]].map { bucket =>
+                Facet(bucket("value").asInstanceOf[String], bucket("count").asInstanceOf[Int])
+              }
+            }).getOrElse(Map.empty)
+          )
+
+          logger.info(s"action:cloudsearch.search\ttime:${end - start}msec\ttotal:${result.total}\thits:${result.hits.size}\tquery:${URLDecoder.decode(queryString, "UTF-8")}")
+
+          Right(result)
+        }
+      }
     } finally {
       request.releaseConnection()
     }
