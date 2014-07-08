@@ -1,7 +1,7 @@
-package com.codebreak.cloudsearch4s
+package jp.co.bizreach.cloudsearch4s
 
 import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.client.methods.{HttpGet, HttpPost}
+import org.apache.http.client.methods.HttpPost
 import java.nio.charset.StandardCharsets
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils

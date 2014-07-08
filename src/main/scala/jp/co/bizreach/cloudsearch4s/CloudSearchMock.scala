@@ -1,9 +1,10 @@
-package com.codebreak.cloudsearch4s
+package jp.co.bizreach.cloudsearch4s
 
 import CloudSearch._
+import jp.co.bizreach.cloudsearch4s
 
 /**
- * Mock for [[com.codebreak.cloudsearch4s.CloudSearch]].
+ * Mock for [[cloudsearch4s.CloudSearch]].
  *
  * @param params Excepted query and its result
  */

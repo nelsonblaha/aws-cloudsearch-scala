@@ -1,4 +1,4 @@
-package com.codebreak.cloudsearch4s
+package jp.co.bizreach.cloudsearch4s
 
 import com.fasterxml.jackson.databind._
 import com.fasterxml.jackson.databind.module.SimpleModule
