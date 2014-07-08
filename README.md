@@ -7,8 +7,8 @@ This is a Scala client for AWS CloudSearch.
 TODO: sbt dependency configuration (not deployed yet)
 
 ```scala
-import com.codebreak.cloudsearch4s.CloudSearch
-import com.codebreak.cloudsearch4s.CloudSearch._
+import jp.co.bizreach.cloudsearch4s.CloudSearch
+import jp.co.bizreach.cloudsearch4s.CloudSearch._
 
 val cloudsearch = CloudSearch(CloudSearchSettings(
   registerUrl = "http://xxxx",
