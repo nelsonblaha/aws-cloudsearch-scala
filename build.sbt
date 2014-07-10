@@ -37,10 +37,6 @@ pomExtra := (
       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
-  <organization>
-    <name>BizReach, Inc</name>
-    <name>http://www.bizreach.co.jp/</name>
-  </organization>
   <scm>
     <url>https://github.com/bizreach/cloudsearch4s</url>
     <connection>scm:git:https://github.com/bizreach/cloudsearch4s.git</connection>
