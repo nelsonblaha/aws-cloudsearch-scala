@@ -174,7 +174,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       sb.append("&start=").append(start)
     }
     // size
-    if(size > 0){
+    if(size >= 0){
       sb.append("&size=").append(size)
     }
 
