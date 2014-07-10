@@ -17,5 +17,39 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"               % "logback-classic"        % "1.1.2" % "test"
 )
 
-publishTo := Some(Resolver.ssh("amateras-repo-scp", "shell.sourceforge.jp", "/home/groups/a/am/amateras/htdocs/mvn/") withPermissions("0664")
-  as(System.getProperty("user.name"), new java.io.File(Path.userHome.absolutePath + "/.ssh/id_rsa")))
+publishMavenStyle := true
+
+publishTo <<= version { (v: String) =>
+  val nexus = "https://oss.sonatype.org/"
+  if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
+  else                             Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+}
+
+publishArtifact in Test := false
+
+pomIncludeRepository := { _ => false }
+
+pomExtra := (
+  <url>https://github.com/bizreach/cloudsearch4s</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+  <organization>
+    <name>BizReach, Inc</name>
+    <name>http://www.bizreach.co.jp/</name>
+  </organization>
+  <scm>
+    <url>https://github.com/bizreach/cloudsearch4s</url>
+    <connection>scm:git:https://github.com/bizreach/cloudsearch4s.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>takezoe</id>
+      <name>Naoki Takezoe</name>
+      <email>naoki.takezoe_at_bizreach.co.jp</email>
+      <timezone>+9</timezone>
+    </developer>
+  </developers>)
