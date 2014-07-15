@@ -6,11 +6,12 @@ import java.nio.charset.StandardCharsets
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 import java.net.URLDecoder
-import org.apache.lucene.search.Query
+import org.apache.lucene.search.{BooleanClause, BooleanQuery, Query}
 import CloudSearch._
 import org.apache.http.client.config.RequestConfig
 import org.apache.http.HttpHost
 import org.slf4j.LoggerFactory
+import org.apache.lucene.util.ToStringUtils
 
 trait CloudSearch {
 
@@ -290,5 +291,59 @@ object CloudSearch {
   case class CloudSearchSettings(searchUrl: String, registerUrl: String, proxy: Option[Proxy] = None)
   case class Proxy(host: String, port: Int)
   case class CloudSearchError(messages: Seq[String])
+
+  class ExtendedBooleanQuery extends BooleanQuery {
+    override def toString(field: String): String = {
+      val buffer: StringBuilder = new StringBuilder
+      val needParens: Boolean = getBoost != 1.0 || getMinimumNumberShouldMatch > 0
+      if (needParens) {
+        buffer.append("(")
+      }
+      {
+        var i: Int = 0
+        while (i < clauses.size) {
+          {
+            val c: BooleanClause = clauses.get(i)
+            if (c.isProhibited) {
+              buffer.append("-")
+            } else if (c.isRequired) {
+              buffer.append("+")
+            } else if(i > 0){
+              buffer.append("OR ")
+            }
+            val subQuery: Query = c.getQuery
+            if (subQuery != null) {
+              if (subQuery.isInstanceOf[BooleanQuery]) {
+                buffer.append("(")
+                buffer.append(subQuery.toString(field))
+                buffer.append(")")
+              } else {
+                buffer.append(subQuery.toString(field))
+              }
+            } else {
+              buffer.append("null")
+            }
+            if (i != clauses.size - 1) {
+              buffer.append(" ")
+            }
+          }
+          ({
+            i += 1; i - 1
+          })
+        }
+      }
+      if (needParens) {
+        buffer.append(")")
+      }
+      if (getMinimumNumberShouldMatch > 0) {
+        buffer.append('~')
+        buffer.append(getMinimumNumberShouldMatch)
+      }
+      if (getBoost != 1.0f) {
+        buffer.append(ToStringUtils.boost(getBoost))
+      }
+      return buffer.toString
+    }
+  }
 
 }
