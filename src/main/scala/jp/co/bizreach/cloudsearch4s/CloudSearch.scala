@@ -5,13 +5,14 @@ import org.apache.http.client.methods.HttpPost
 import java.nio.charset.StandardCharsets
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
-import java.net.URLDecoder
-import org.apache.lucene.search.{BooleanClause, BooleanQuery, Query}
+import java.net.{URLEncoder, URLDecoder}
+import org.apache.lucene.search.{TermQuery, BooleanClause, BooleanQuery, Query}
 import CloudSearch._
 import org.apache.http.client.config.RequestConfig
 import org.apache.http.HttpHost
 import org.slf4j.LoggerFactory
 import org.apache.lucene.util.ToStringUtils
+import org.apache.lucene.index.Term
 
 trait CloudSearch {
 
@@ -292,6 +293,10 @@ object CloudSearch {
   case class Proxy(host: String, port: Int)
   case class CloudSearchError(messages: Seq[String])
 
+  /**
+   * Extends [[org.apache.lucene.search.BooleanQuery]] to generate SHOULD query as OR.
+   * If you want to execute OR query, use this class instead of BooleanQuery.
+   */
   class ExtendedBooleanQuery extends BooleanQuery {
     override def toString(field: String): String = {
       val buffer: StringBuilder = new StringBuilder
@@ -343,6 +348,23 @@ object CloudSearch {
         buffer.append(ToStringUtils.boost(getBoost))
       }
       return buffer.toString
+    }
+  }
+
+  /**
+   * Extends [[org.apache.lucene.search.TermQuery]] to URL encode the term value.
+   */
+  class URLEncodeTermQuery(term: Term) extends TermQuery(term) {
+    override def toString(field: String): String = {
+      val buffer: StringBuilder = new StringBuilder
+      val term = getTerm()
+      if (!(term.field == field)) {
+        buffer.append(term.field)
+        buffer.append(":")
+      }
+      buffer.append(URLEncoder.encode(term.text, "UTF-8"))
+      buffer.append(ToStringUtils.boost(getBoost))
+      buffer.toString
     }
   }
 
