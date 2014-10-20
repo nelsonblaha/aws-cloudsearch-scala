@@ -7,7 +7,7 @@ This is a Scala client for AWS CloudSearch.
 Add a following dependency into your `build.sbt` at first.
 
 ```scala
-libraryDependencies += "jp.co.bizreach" %% "cloudsearch4s" % "0.0.1"
+libraryDependencies += "jp.co.bizreach" %% "aws-cloudsearch-scala" % "0.0.2"
 ```
 
 Then you can use CloudSearch4s in your code.

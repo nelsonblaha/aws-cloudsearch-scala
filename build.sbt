@@ -1,12 +1,10 @@
-name := "cloudsearch4s"
+name := "aws-cloudsearch-scala"
 
 organization := "jp.co.bizreach"
 
-version := "0.0.1"
+version := "0.0.2"
 
-scalaVersion := "2.11.1"
-
-crossScalaVersions := Seq("2.10.3", "2.11.1")
+scalaVersion := "2.11.2"
 
 libraryDependencies ++= Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala"  % "2.4.0-rc2",
