@@ -30,7 +30,7 @@ publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
 
 pomExtra := (
-  <url>https://github.com/bizreach/cloudsearch4s</url>
+  <url>https://github.com/bizreach/aws-cloudsearch-scala</url>
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -38,8 +38,8 @@ pomExtra := (
     </license>
   </licenses>
   <scm>
-    <url>https://github.com/bizreach/cloudsearch4s</url>
-    <connection>scm:git:https://github.com/bizreach/cloudsearch4s.git</connection>
+    <url>https://github.com/bizreach/aws-cloudsearch-scala</url>
+    <connection>scm:git:https://github.com/bizreach/aws-cloudsearch-scala.git</connection>
   </scm>
   <developers>
     <developer>
