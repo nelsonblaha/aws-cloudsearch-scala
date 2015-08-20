@@ -4,7 +4,7 @@ organization := "jp.co.bizreach"
 
 version := "0.0.2"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.7"
 
 libraryDependencies ++= Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala"  % "2.4.0-rc2",
