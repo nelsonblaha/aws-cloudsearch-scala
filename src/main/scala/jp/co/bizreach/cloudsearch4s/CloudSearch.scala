@@ -199,8 +199,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       val end      = System.currentTimeMillis
 
       val resultJson = EntityUtils.toString(response.getEntity())
-      println("----resultJson: "+resultJson)
-      val resultMap = JsonUtils.deserialize(resultJson, classOf[Map[String, Map[String, AnyRef]]])("properties")
+      val resultMap = JsonUtils.deserialize(resultJson, classOf[Map[String, AnyRef]])
 
       val status  = resultMap("status").asInstanceOf[String]
       val adds    = resultMap("adds").asInstanceOf[Int]
@@ -239,6 +238,7 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       val json = EntityUtils.toString(response.getEntity())
       val responseMap = JsonUtils.deserialize(json, classOf[Map[String, Any]])
 
+      println("------responseMap: " + responseMap)
       responseMap.get("error") match {
         case Some(_) => {
           Left(CloudSearchError(messages = Seq(responseMap("message").asInstanceOf[String])))
