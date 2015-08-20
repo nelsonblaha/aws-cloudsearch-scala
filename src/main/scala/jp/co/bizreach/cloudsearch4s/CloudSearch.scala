@@ -199,7 +199,8 @@ class CloudSearchImpl(settings: CloudSearchSettings) extends CloudSearch {
       val end      = System.currentTimeMillis
 
       val resultJson = EntityUtils.toString(response.getEntity())
-      val resultMap = JsonUtils.deserialize(resultJson, classOf[Map[String, AnyRef]])
+      println("----resultJson: "+resultJson)
+      val resultMap = JsonUtils.deserialize(resultJson, classOf[Map[String, Map[String, AnyRef]]])("properties")
 
       val status  = resultMap("status").asInstanceOf[String]
       val adds    = resultMap("adds").asInstanceOf[Int]
