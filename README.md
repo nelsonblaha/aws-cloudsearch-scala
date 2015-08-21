@@ -114,7 +114,7 @@ cloudsearch.removeIndices(Seq(
 ```scala
 cloudsearch.search(classOf[Job],
   // Query which is assembled using Lucene's query builder API
-  new TermQuery(new Term("index_type", "crawl"))
+  new TermQuery(new Term("index_type", "crawl")),
   // Highlight settings (Optional)
   highlights = Seq(HighlightParam("job_title")),
   // Facet search settings (Optional)
